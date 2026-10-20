@@ -198,24 +198,25 @@ const FECHAR = "Vamos chegar numa resolução: resuma em poucas linhas o que dec
 /* ================= carinhas ================= */
 // Cada agente tem cor e um detalhe próprio. Agente novo sem entrada aqui ganha cor e detalhe pelo nome.
 const ROSTOS = {
-  "Sócio de Negócios":        { cor: 210, item: "oculos" },
-  "Advisor":                  { cor: 30,  item: "advisor", sat: 0.55 },
-  "Advisor de Escala":        { cor: 195, item: "escala", sat: 0.6 },
-  "Estrategista de Conteúdo": { cor: 260, item: "estrela" },
-  "Pesquisadora":             { cor: 175, item: "antena" },
-  "Copywriter":               { cor: 25,  item: "topete" },
-  "Ghostwriter":              { cor: 285, item: "boina" },
-  "Designer":                 { cor: 330, item: "gota" },
-  "Editor de Reels":          { cor: 5,   item: "fones" },
-  "Revisor de Fatos":         { cor: 140, item: "monoculo" },
-  "Social Media":             { cor: 345, item: "coracao" },
-  "Community Manager":        { cor: 95,  item: "broto" },
+  "Sócio de Negócios":        { cor: 210, item: "oculos",   cabelo: "curto",    pelo: "hsl(25 32% 18%)" },
+  "Advisor":                  { cor: 30,  item: "advisor",  cabelo: "advisor",  pelo: "hsl(25 35% 20%)", sat: 0.55 },
+  "Advisor de Escala":        { cor: 195, item: "escala",   cabelo: "escala",   pelo: "hsl(220 25% 14%)", sat: 0.6 },
+  "Estrategista de Conteúdo": { cor: 260, item: "estrela",  cabelo: "ondulado", pelo: "hsl(268 24% 22%)" },
+  "Pesquisadora":             { cor: 175, item: "antena",   cabelo: "longo",    pelo: "hsl(15 38% 22%)" },
+  "Copywriter":               { cor: 25,  item: "nenhum",   cabelo: "espetado", pelo: "hsl(22 78% 48%)" },
+  "Ghostwriter":              { cor: 285, item: "boina",    cabelo: "ondas",    pelo: "hsl(8 52% 32%)" },
+  "Designer":                 { cor: 330, item: "gota",     cabelo: "chanel",   pelo: "hsl(325 52% 40%)" },
+  "Editor de Reels":          { cor: 5,   item: "fones",    cabelo: "crespo",   pelo: "hsl(240 12% 13%)" },
+  "Revisor de Fatos":         { cor: 140, item: "monoculo", cabelo: "grisalho", pelo: "hsl(200 8% 66%)" },
+  "Social Media":             { cor: 345, item: "coracao",  cabelo: "franja",   pelo: "hsl(42 72% 52%)" },
+  "Community Manager":        { cor: 95,  item: "broto",    cabelo: "cacheado", pelo: "hsl(30 32% 20%)" },
 };
-const ITENS = ["oculos", "estrela", "antena", "topete", "boina", "gota", "fones", "monoculo", "coracao", "broto"];
+const ITENS = ["oculos", "estrela", "antena", "boina", "gota", "fones", "monoculo", "coracao", "broto"];
+const CABELOS = ["curto", "ondulado", "espetado", "crespo", "franja", "cacheado"];
 function rostoDe(nome) {
   if (ROSTOS[nome]) return ROSTOS[nome];
   let h = 0; for (const c of nome || "") h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return { cor: h % 360, item: ITENS[h % ITENS.length] };
+  return { cor: h % 360, item: ITENS[h % ITENS.length], cabelo: CABELOS[h % CABELOS.length], pelo: `hsl(${(h * 7) % 40 + 15} 30% 20%)` };
 }
 
 function itemSvg(item, cor) {
@@ -223,15 +224,40 @@ function itemSvg(item, cor) {
   return {
     estrela: `<path d="M100 18l7 15 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2z" fill="${vivo}"/>`,
     antena: `<path d="M100 40V18" stroke="${escuro}" stroke-width="4" stroke-linecap="round"/><circle cx="100" cy="15" r="8" fill="${vivo}"/>`,
-    topete: `<path d="M84 42q6-26 22-22-12 6-6 22M98 40q10-22 26-14-14 2-14 16" fill="${vivo}"/>`,
     boina: `<path d="M52 56q48-38 96 0q-48 10-96 0z" fill="${escuro}"/><circle cx="100" cy="30" r="5" fill="${escuro}"/>`,
     gota: `<path d="M100 14q16 20 0 34q-16-14 0-34z" fill="${vivo}"/>`,
     fones: `<g fill="none" stroke="${escuro}" stroke-width="6" stroke-linecap="round"><path d="M42 100q0-66 58-66t58 66"/></g><rect x="30" y="92" width="18" height="30" rx="8" fill="${escuro}"/><rect x="152" y="92" width="18" height="30" rx="8" fill="${escuro}"/>`,
     coracao: `<path d="M100 40V24" stroke="${escuro}" stroke-width="4" stroke-linecap="round"/><path d="M100 24c-4-8-16-6-14 3 1 6 14 12 14 12s13-6 14-12c2-9-10-11-14-3z" fill="${vivo}"/>`,
-    advisor: `<path d="M36 92q-10-62 60-66 66-4 72 58-6-10-14-14 0-20-24-26 8 10 2 16-20-20-58-14-30 8-38 46z" fill="hsl(25 35% 20%)"/><path d="M70 40q20-10 44-6" fill="none" stroke="hsl(25 30% 34%)" stroke-width="4" stroke-linecap="round"/>`,
-    escala: `<path d="M38 80q-2-50 62-52 62 2 62 52-8-26-28-32 10 10 6 18-16-22-44-20-40 6-58 34z" fill="hsl(220 25% 14%)"/><path d="M80 34q30-10 56 6" fill="none" stroke="hsl(220 20% 32%)" stroke-width="4" stroke-linecap="round"/>`,
     broto: `<path d="M100 40V24" stroke="hsl(120 35% 35%)" stroke-width="4" stroke-linecap="round"/><path d="M100 26q-16-14-24-2 14 6 24 2zM100 26q14-16 24-4-12 8-24 4z" fill="hsl(120 45% 50%)"/>`,
   }[item] || "";
+}
+
+// Cabelo. "Atrás" é o que cai pelos lados e fica escondido pela cabeça; "frente" cobre o topo e a testa,
+// sempre desenhado por baixo dos olhos para eles nunca ficarem tapados.
+function cabeloTras(estilo, pelo) {
+  return {
+    longo: `<path d="M30 100C22 44 70 20 100 20s78 24 70 80l8 74q-16 12-32 0v-64H54v64q-16 12-32 0z" fill="${pelo}"/>`,
+    ondas: `<path d="M32 100C24 46 72 22 100 22s76 24 68 78q12 20 4 40-6 20-22 24-8-12-6-28H58q2 16-6 28-16-4-22-24-8-20 2-40z" fill="${pelo}"/>`,
+    chanel: `<path d="M32 98C26 46 74 24 100 24s74 22 68 74l-2 40q-14 12-28 2V100H62v40q-14 10-28-2z" fill="${pelo}"/>`,
+  }[estilo] || "";
+}
+function cabeloFrente(estilo, pelo) {
+  const brilho = `<path d="M66 46q34-14 70 2" fill="none" stroke="hsl(0 0% 100% / .22)" stroke-width="4" stroke-linecap="round"/>`;
+  const f = {
+    curto: `<path d="M36 90Q28 38 100 30t64 60q-8-26-30-34-30 10-64 2-24 6-34 32z" fill="${pelo}"/>`,
+    advisor: `<path d="M36 92q-10-62 60-66 66-4 72 58-6-10-14-14 0-20-24-26 8 10 2 16-20-20-58-14-30 8-38 46z" fill="${pelo}"/>`,
+    escala: `<path d="M38 80q-2-50 62-52 62 2 62 52-8-26-28-32 10 10 6 18-16-22-44-20-40 6-58 34z" fill="${pelo}"/>`,
+    ondulado: `<path d="M34 92Q26 40 100 30t66 62q-6-14-18-22-8 10-20 4-12 10-28 2-14 8-26 0-14 6-22 20-8 0-18 6z" fill="${pelo}"/>`,
+    espetado: `<path d="M36 90Q30 50 52 54L56 30L72 48L88 24L100 46L114 24L128 48L144 30L148 54Q172 50 164 90q-8-26-30-32-34 8-68 0-22 6-30 32z" fill="${pelo}"/>`,
+    crespo: `<g fill="${pelo}"><circle cx="52" cy="78" r="15"/><circle cx="58" cy="54" r="17"/><circle cx="80" cy="40" r="18"/><circle cx="106" cy="36" r="18"/><circle cx="130" cy="44" r="18"/><circle cx="148" cy="62" r="16"/><circle cx="154" cy="82" r="13"/><rect x="50" y="52" width="102" height="30" rx="10"/></g>`,
+    grisalho: `<path d="M36 92Q30 40 98 32q62-4 66 58-8-22-26-28-28 8-54 0-24 4-48 30z" fill="${pelo}"/>`,
+    franja: `<path d="M36 92Q28 38 100 30t64 62q-10-6-16-22-22 22-72 14-22-2-40 8z" fill="${pelo}"/>`,
+    cacheado: `<g fill="${pelo}"><circle cx="48" cy="80" r="11"/><circle cx="58" cy="60" r="13"/><circle cx="76" cy="46" r="13"/><circle cx="98" cy="40" r="13"/><circle cx="120" cy="44" r="13"/><circle cx="140" cy="54" r="13"/><circle cx="152" cy="72" r="12"/><circle cx="154" cy="88" r="9"/><rect x="52" y="50" width="98" height="24" rx="10"/></g>`,
+    longo: `<path d="M38 94Q32 42 100 34t62 60q-6-20-22-28-14 16-40 18-28 0-40-18-16 6-22 28z" fill="${pelo}"/>`,
+    ondas: `<path d="M38 94Q30 42 100 34t62 60q-2-18-18-30-8 12-24 14-12-8-30-4-14-4-22-10-14 12-22 30z" fill="${pelo}"/>`,
+    chanel: `<path d="M38 96Q30 40 100 32t62 64q-8-24-24-34-26 14-50 10-22-2-38 2-8 8-12 22z" fill="${pelo}"/>`,
+  }[estilo] || "";
+  return f ? f + brilho : "";
 }
 
 // Itens presos ao rosto: andam junto com os olhos quando o bonequinho olha para o cursor.
@@ -247,7 +273,7 @@ function itemRostoSvg(item, cor) {
 
 // Desenha o bonequinho (corpo de bala de goma, olhos, bochechas, boca e o detalhe do agente).
 function bonecoSvg(nome, id) {
-  const { cor, item, sat = 1 } = rostoDe(nome);
+  const { cor, item, sat = 1, cabelo, pelo } = rostoDe(nome);
   const S = (v) => Math.round(v * sat);
   return `<svg viewBox="0 0 200 200" aria-hidden="true">
     <defs>
@@ -257,8 +283,10 @@ function bonecoSvg(nome, id) {
     </defs>
     <ellipse class="sombra" cx="100" cy="182" rx="52" ry="8" fill="hsl(${cor} 25% 60% / .22)"/>
     <g class="corpo">
+      ${cabeloTras(cabelo, pelo)}
       <path d="M100 32c40 0 66 30 66 72s-24 70-66 70-66-28-66-70 26-72 66-72z" fill="url(#g${id})"/>
       <ellipse cx="78" cy="60" rx="16" ry="9" fill="#fff" opacity=".55" transform="rotate(-25 78 60)"/>
+      ${cabeloFrente(cabelo, pelo)}
       <g class="rosto-g">
         <g class="olhos">
           <g class="olho" style="transform-origin:78px 96px"><ellipse cx="78" cy="96" rx="7.5" ry="10" fill="hsl(${cor} 40% 18%)"/><circle class="brilho" cx="80.5" cy="92" r="2.6" fill="#fff"/></g>
