@@ -172,6 +172,7 @@ const FECHAR = "Fecha o plano agora, no formato do seu documento-base: oferta, m
 // Cada agente tem cor e um detalhe próprio. Agente novo sem entrada aqui ganha cor e detalhe pelo nome.
 const ROSTOS = {
   "Sócio de Negócios":        { cor: 210, item: "oculos" },
+  "Advisor":                  { cor: 42,  item: "gravata" },
   "Estrategista de Conteúdo": { cor: 260, item: "estrela" },
   "Pesquisadora":             { cor: 175, item: "antena" },
   "Copywriter":               { cor: 25,  item: "topete" },
@@ -201,6 +202,7 @@ function itemSvg(item, cor) {
     fones: `<g fill="none" stroke="${escuro}" stroke-width="6" stroke-linecap="round"><path d="M42 100q0-66 58-66t58 66"/></g><rect x="30" y="92" width="18" height="30" rx="8" fill="${escuro}"/><rect x="152" y="92" width="18" height="30" rx="8" fill="${escuro}"/>`,
     monoculo: `<circle cx="122" cy="96" r="17" fill="none" stroke="${escuro}" stroke-width="4"/><path d="M138 102q8 18 2 34" fill="none" stroke="${escuro}" stroke-width="2"/>`,
     coracao: `<path d="M100 40V24" stroke="${escuro}" stroke-width="4" stroke-linecap="round"/><path d="M100 24c-4-8-16-6-14 3 1 6 14 12 14 12s13-6 14-12c2-9-10-11-14-3z" fill="${vivo}"/>`,
+    gravata: `<path d="M64 46q36-26 72 0q-10-16-36-16t-36 16z" fill="hsl(${cor} 6% 72%)"/><path d="M92 146l8 6 8-6-4 26-4 6-4-6z" fill="${escuro}"/><path d="M92 146l8-6 8 6-8 6z" fill="${vivo}"/>`,
     broto: `<path d="M100 40V24" stroke="hsl(120 35% 35%)" stroke-width="4" stroke-linecap="round"/><path d="M100 26q-16-14-24-2 14 6 24 2zM100 26q14-16 24-4-12 8-24 4z" fill="hsl(120 45% 50%)"/>`,
   }[item] || "";
 }
@@ -240,6 +242,20 @@ function bonecoSvg(nome, id) {
 const anima = { estado: "ocioso", energia: 0, alvo: 0, t0: performance.now(), pulo: 0, piscar: 0, proximaPiscada: 2000 };
 const calmo = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function mudarEstado(e) { anima.estado = e; if (e === "respondeu") anima.pulo = 1; }
+
+// Olhar: segue o cursor (ou o dedo) pela tela inteira; o corpo também se inclina um pouco para lá.
+const olhar = { x: 0, y: 0, ax: 0, ay: 0 };
+function mirar(cx, cy) {
+  const b = document.getElementById("boneco");
+  if (!b || b.offsetParent === null) return;
+  const r = b.getBoundingClientRect();
+  const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height * 0.45);
+  const d = Math.hypot(dx, dy) || 1, alcance = Math.min(1, d / (r.width * 0.9));
+  olhar.ax = (dx / d) * alcance; olhar.ay = (dy / d) * alcance;
+}
+window.addEventListener("pointermove", (e) => mirar(e.clientX, e.clientY), { passive: true });
+window.addEventListener("pointerdown", (e) => mirar(e.clientX, e.clientY), { passive: true });
+document.addEventListener("mouseleave", () => { olhar.ax = 0; olhar.ay = 0; });
 function cutucar(forca = 1) { anima.alvo = Math.min(1, anima.alvo + 0.45 * forca); }
 
 function quadro(agora) {
@@ -254,16 +270,19 @@ function quadro(agora) {
     const sy = 1 + resp + e * 0.08 - anima.pulo * 0.05;
     const sx = 1 - resp * 0.6 + e * 0.05 + anima.pulo * 0.04;
     const dy = -Math.abs(Math.sin(t * 9)) * e * 10 - anima.pulo * 14 * Math.abs(Math.sin(t * 7));
-    const incl = anima.estado === "pensando" ? Math.sin(t * 1.6) * 4 : Math.sin(t * 1.1) * 1.2 + e * Math.sin(t * 13) * 3;
-    svg.querySelector(".corpo").setAttribute("transform", `translate(100 176) rotate(${incl}) scale(${sx} ${sy}) translate(-100 -176) translate(0 ${dy})`);
+    olhar.x += (olhar.ax - olhar.x) * 0.12; olhar.y += (olhar.ay - olhar.y) * 0.12;
+    const segue = anima.estado === "pensando" ? 0 : 1;
+    const incl = (anima.estado === "pensando" ? Math.sin(t * 1.6) * 4 : Math.sin(t * 1.1) * 1.2 + e * Math.sin(t * 13) * 3) + olhar.x * 6 * segue;
+    svg.querySelector(".corpo").setAttribute("transform", `translate(100 176) rotate(${incl}) scale(${sx} ${sy}) translate(-100 -176) translate(${olhar.x * 6 * segue} ${dy + olhar.y * 3 * segue})`);
+    svg.querySelector(".rosto-g").setAttribute("transform", `translate(${olhar.x * 8 * segue} ${olhar.y * 6 * segue})`);
     svg.querySelector(".sombra").setAttribute("transform", `translate(100 182) scale(${1 - Math.min(0.3, -dy / 60)} 1) translate(-100 -182)`);
 
     // olhos: piscar, e olhar em volta quando está pensando
     if (agora > anima.proximaPiscada) { anima.piscar = 1; anima.proximaPiscada = agora + 2500 + Math.random() * 3000; }
     anima.piscar *= 0.75;
     const fecha = anima.piscar > 0.2 ? 0.1 : 1;
-    const ox = anima.estado === "pensando" ? Math.sin(t * 1.3) * 7 : 0;
-    const oy = anima.estado === "pensando" ? -4 : 0;
+    const ox = anima.estado === "pensando" ? Math.sin(t * 1.3) * 7 : olhar.x * 6;
+    const oy = anima.estado === "pensando" ? -4 : olhar.y * 5;
     svg.querySelectorAll(".olho").forEach(o => o.style.transform = `translate(${ox}px, ${oy}px) scaleY(${fecha * (anima.estado === "respondeu" && anima.pulo > 0.3 ? 0.55 : 1)})`);
 
     // boca: abre com a voz, reta pensando, sorriso no resto
