@@ -73,7 +73,11 @@ button { cursor: pointer; }
 
 /* retorno */
 .retorno { display: grid; gap: 0.8rem; }
-.fala { justify-self: center; text-align: center; color: var(--tinta-2); font-style: italic; max-width: 34rem; }
+.fala { position: relative; justify-self: center; text-align: center; color: var(--tinta-2); max-width: 34rem; background: var(--neve); border-radius: 18px; padding: 0.7rem 1rem; box-shadow: 0 1px 2px rgb(31 42 51 / 0.06); margin-top: 0.4rem; }
+.fala::before { content: ""; position: absolute; top: -7px; left: 50%; width: 14px; height: 14px; background: var(--neve); transform: translateX(-50%) rotate(45deg); }
+.fala b { color: var(--tinta); font-weight: 400; }
+.fala i { color: var(--tinta-2); }
+.fala.ouvindo { box-shadow: 0 0 0 2px var(--vermelho); }
 .fala b { font-style: normal; color: var(--tinta); font-weight: 400; }
 .cartao { background: var(--neve); border-radius: 20px; padding: 1.1rem 1.2rem; box-shadow: 0 1px 2px rgb(31 42 51 / 0.05), 0 8px 24px -12px rgb(31 42 51 / 0.12); min-width: 0; overflow-wrap: anywhere; }
 .cartao > * { margin: 0 0 0.6rem; }
@@ -125,11 +129,11 @@ details.bloco summary { cursor: pointer; color: var(--tinta-2); font-size: 0.92r
     <p class="nome" id="nome"></p>
     <p class="funcao" id="funcao"></p>
     <button type="button" id="boneco" aria-label="Tocar para falar"></button>
+    <p class="fala" id="fala" aria-live="polite" hidden></p>
     <p class="estado" id="estado" aria-live="polite">Toque em mim para falar</p>
   </section>
 
   <section class="retorno" aria-live="polite">
-    <p class="fala" id="fala" hidden></p>
     <div id="resposta"></div>
   </section>
 
@@ -214,7 +218,7 @@ function itemRostoSvg(item, cor) {
     escala: `<path d="M64 78q14-5 28 0M108 78q14-5 28 0" fill="none" stroke="hsl(220 25% 14%)" stroke-width="5" stroke-linecap="round"/>`,
     oculos: `<g fill="none" stroke="${escuro}" stroke-width="4"><circle cx="78" cy="96" r="17"/><circle cx="122" cy="96" r="17"/><path d="M95 95q5-4 10 0"/></g>`,
     monoculo: `<circle cx="122" cy="96" r="17" fill="none" stroke="${escuro}" stroke-width="4"/><path d="M138 102q8 18 2 34" fill="none" stroke="${escuro}" stroke-width="2"/>`,
-    advisor: `<path d="M64 78q14-7 28-1M108 77q14-6 28 1" fill="none" stroke="hsl(25 35% 20%)" stroke-width="4.5" stroke-linecap="round"/><path d="M60 122q4 34 40 36 36-2 40-36-6 22-40 24-34-2-40-24z" fill="hsl(25 30% 25% / .55)"/>`,
+    advisor: `<path d="M64 78q14-7 28-1M108 77q14-6 28 1" fill="none" stroke="hsl(25 35% 20%)" stroke-width="4.5" stroke-linecap="round"/>`,
   }[item] || "";
 }
 
@@ -416,8 +420,8 @@ function render() {
   $("pauta").hidden = msgs.length > 0;
 
   if (!gravando) {
-    $("fala").hidden = !ultimaVoce;
-    if (ultimaVoce) $("fala").replaceChildren("Você: ", el("b", { text: ultimaVoce.texto }));
+    if (ultimaVoce) mostrarFala(ultimaVoce.texto);
+    else if (!msgs.length && !$("fala").textContent.startsWith("Não ouvi")) $("fala").hidden = true;
   }
 
   const resposta = $("resposta");
@@ -489,49 +493,75 @@ function marcarGravando(sim) {
   $("boneco").setAttribute("aria-label", sim ? "Parar e enviar" : "Tocar para falar");
   $("estado").innerHTML = sim ? "<b>●</b> Ouvindo… toque em mim de novo para enviar" : "Toque em mim para falar";
 }
-function mostrarFala(final, parcial = "") {
-  $("fala").hidden = false;
-  $("fala").replaceChildren("Você: ", el("b", { text: final }), parcial ? " " + parcial : "");
+// O que você está falando aparece logo embaixo do bonequinho, para saber que ele está ouvindo.
+function mostrarFala(final, parcial = "", aviso = "") {
+  const f = $("fala");
+  f.hidden = false;
+  f.classList.toggle("ouvindo", gravando);
+  if (!final && !parcial) { f.replaceChildren(el("i", { text: aviso || (gravando ? "Estou ouvindo… pode falar." : "") })); return; }
+  f.replaceChildren(el("b", { text: final }), parcial ? el("i", { text: (final ? " " : "") + parcial }) : "");
 }
 
 $("boneco").addEventListener("click", () => {
-  if (gravando) return Reconhecimento ? pararDitado() : pararGravador();
+  const ditado = Reconhecimento && cfg.modo !== "gravador";
+  if (gravando) return gravador && gravador.state === "recording" ? pararGravador() : pararDitado();
   if (ocupado()) { cutucar(0.6); $("estado").textContent = "Ainda estou pensando na anterior. Já te respondo."; return; }
-  return Reconhecimento ? comecarDitado() : comecarGravador();
+  return ditado ? comecarDitado() : comecarGravador();
 });
 
 async function aoTerminarDeFalar(texto) {
   texto = texto.trim();
-  if (!texto) { render(); return; }
+  if (!texto) { mostrarFala("", "", "Não ouvi nada. Toque em mim e fale de novo."); $("estado").textContent = "Toque em mim para falar"; return; }
+  mostrarFala(texto);
   $("estado").textContent = "Enviando…";
   if (!(await enviar(texto))) abrirTeclado(texto);
 }
 
 // Chrome: o texto aparece enquanto você fala, e cada pedaço de fala faz o bonequinho mexer.
+// Se o ditado do navegador não funcionar neste aparelho (erro ou microfone que nunca abre), troca sozinho para
+// gravar o áudio e transcrever no PC, e lembra disso nas próximas vezes.
+let ultimoParcial = "", vigia = null;
+function trocarParaGravador(motivo) {
+  desligando = true; clearTimeout(vigia);
+  try { rec.abort(); } catch {}
+  cfg.modo = "gravador"; guardar();
+  marcarGravando(false);
+  $("estado").textContent = motivo + " Vou gravar o áudio e transcrever no PC. Toque em mim e fale de novo.";
+}
 function comecarDitado() {
-  finalTxt = ""; desligando = false;
+  finalTxt = ""; ultimoParcial = ""; desligando = false;
   rec = new Reconhecimento();
   rec.lang = "pt-BR"; rec.continuous = true; rec.interimResults = true;
+  let ouviuAlgo = false;
+  rec.onaudiostart = () => { ouviuAlgo = true; };
   rec.onresult = (ev) => {
     let parcial = "";
     for (let i = ev.resultIndex; i < ev.results.length; i++) {
       const t = ev.results[i][0].transcript;
       if (ev.results[i].isFinal) finalTxt += (finalTxt ? " " : "") + t.trim(); else parcial += t;
     }
+    ultimoParcial = parcial.trim();
     cutucar();
     mostrarFala(finalTxt, parcial);
   };
   rec.onspeechstart = () => cutucar();
   rec.onerror = (ev) => {
-    const msg = { "not-allowed": "O navegador bloqueou o microfone. Libere o microfone para este site.", "network": "O ditado precisa de internet.", "audio-capture": "Não achei um microfone." }[ev.error];
-    if (msg) { desligando = true; $("estado").textContent = msg; }
+    if (ev.error === "no-speech" || ev.error === "aborted") return;
+    if (ev.error === "not-allowed") { desligando = true; $("estado").textContent = "O navegador bloqueou o microfone. Libere o microfone para este site nas configurações do navegador."; return; }
+    if (ev.error === "audio-capture") { desligando = true; $("estado").textContent = "Não achei um microfone neste aparelho."; return; }
+    trocarParaGravador("O ditado deste navegador não funcionou.");
   };
   rec.onend = () => {
+    if (cfg.modo === "gravador") return;
     if (!desligando) { try { rec.start(); return; } catch {} }
+    clearTimeout(vigia);
     marcarGravando(false);
-    aoTerminarDeFalar(finalTxt);
+    aoTerminarDeFalar(finalTxt || ultimoParcial);
   };
-  try { rec.start(); marcarGravando(true); mostrarFala(""); } catch { $("estado").textContent = "Não consegui ligar o microfone."; }
+  try {
+    rec.start(); marcarGravando(true); mostrarFala("");
+    vigia = setTimeout(() => { if (!ouviuAlgo && gravando) trocarParaGravador("O microfone não abriu no ditado deste navegador."); }, 4000);
+  } catch { trocarParaGravador("Não consegui ligar o ditado."); }
 }
 function pararDitado() { desligando = true; try { rec.stop(); } catch {} }
 
