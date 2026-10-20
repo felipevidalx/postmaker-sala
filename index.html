@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="robots" content="noindex, nofollow">
+<title>Sala</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<style>
+/* Layout: coluna de conversa rolando no meio; topo com o agente; embaixo, fixo, o botão grande de gravar. */
+:root {
+  --bg: #eef2ec;
+  --page: #f8faf6;
+  --ink: #1d2620;
+  --muted: #5b6a5f;
+  --line: #cfd9cf;
+  --moss: #3d6a4c;
+  --moss-ink: #ffffff;
+  --moss-soft: #dde8de;
+  --sun-soft: #f1e9d2;
+  --rec: #b3361f;
+  --display: "Young Serif", Georgia, "Times New Roman", serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121814; --page: #182019; --ink: #e3ebe4; --muted: #9db0a2; --line: #2c3a30;
+    --moss: #8cc39d; --moss-ink: #10180f; --moss-soft: #1f3125; --sun-soft: #2e2817; --rec: #ff8a73;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--body); font-size: 1.0625rem; line-height: 1.55;
+  display: flex; flex-direction: column;
+}
+[hidden] { display: none !important; }
+.gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.coluna { max-width: 44rem; margin: 0 auto; width: 100%; }
+h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; line-height: 1.2; text-wrap: balance; }
+p { margin: 0; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; font-weight: 700; border-radius: 10px; padding: 0.6rem 1rem; border: 1px solid var(--line); background: var(--page); }
+button.principal { background: var(--moss); color: var(--moss-ink); border-color: var(--moss); }
+button:disabled { opacity: 0.5; cursor: default; }
+:focus-visible { outline: 3px solid var(--moss); outline-offset: 2px; }
+.dica { font-size: 0.88rem; color: var(--muted); }
+.erro { color: var(--rec); font-weight: 700; font-size: 0.95rem; }
+
+/* entrada */
+.entrada { flex: 1; display: grid; place-items: center; padding-block: 2rem; }
+.entrada form { display: grid; gap: 0.9rem; width: 100%; max-width: 22rem; }
+.entrada input { padding: 0.8rem 0.9rem; border-radius: 10px; border: 1px solid var(--line); background: var(--page); }
+
+/* topo */
+header { padding-block: max(0.75rem, env(safe-area-inset-top, 0px)) 0.75rem; border-bottom: 1px solid var(--line); background: var(--page); }
+.topo { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.topo select { flex: 1; min-width: 0; padding: 0.55rem 0.6rem; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-weight: 700; }
+.topo button { padding: 0.55rem 0.8rem; font-size: 0.9rem; }
+.funcao { font-size: 0.85rem; color: var(--muted); margin-top: 0.35rem; }
+details.historico { margin-top: 0.5rem; font-size: 0.92rem; }
+details.historico summary { cursor: pointer; color: var(--muted); }
+.historico ul { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.2rem; max-height: 14rem; overflow-y: auto; }
+.historico button { width: 100%; text-align: left; font-weight: 400; border: 0; background: none; padding: 0.4rem 0.3rem; display: grid; gap: 0; }
+.historico button small { color: var(--muted); }
+
+/* conversa */
+main { flex: 1; overflow-y: auto; }
+.mensagens { display: grid; gap: 1rem; padding-block: 1rem 1.5rem; }
+.vazio { display: grid; gap: 1rem; padding-block: 1.5rem; }
+.pauta { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pauta button { font-weight: 400; font-size: 0.92rem; border-radius: 99px; padding: 0.45rem 0.9rem; background: var(--page); }
+.msg { display: grid; gap: 0.35rem; max-width: 100%; min-width: 0; }
+.msg .quem { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.msg.voce { justify-items: end; }
+.msg.voce .bolha { background: var(--moss); color: var(--moss-ink); border-radius: 16px 16px 4px 16px; padding: 0.7rem 0.95rem; max-width: 88%; white-space: pre-wrap; }
+.msg.agente .bolha { background: var(--page); border: 1px solid var(--line); border-radius: 4px 16px 16px 16px; padding: 0.85rem 1rem; min-width: 0; overflow-wrap: anywhere; }
+.bolha > * { margin: 0 0 0.6rem; }
+.bolha > *:last-child { margin-bottom: 0; }
+.bolha h1, .bolha h2, .bolha h3 { font-family: var(--display); font-weight: 400; font-size: 1.1rem; }
+.bolha ul, .bolha ol { padding-left: 1.2rem; }
+.bolha .tabela { overflow-x: auto; }
+.bolha table { border-collapse: collapse; font-size: 0.88rem; }
+.bolha th, .bolha td { border-bottom: 1px solid var(--line); padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+.bolha a { color: var(--moss); }
+.pensando { font-style: italic; color: var(--muted); display: flex; gap: 0.5rem; align-items: center; }
+.pensando::before { content: ""; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--moss); animation: pulsa 1.2s ease-in-out infinite; flex: none; }
+@keyframes pulsa { 50% { opacity: 0.25; } }
+
+/* gravar */
+footer { border-top: 1px solid var(--line); background: var(--page); padding-block: 0.9rem max(0.9rem, env(safe-area-inset-bottom, 0px)); }
+.controle { display: grid; gap: 0.6rem; justify-items: center; }
+.ao-vivo { width: 100%; min-height: 1.4em; max-height: 7rem; overflow-y: auto; text-align: center; color: var(--muted); font-size: 0.95rem; }
+.ao-vivo b { color: var(--ink); font-weight: 400; }
+.linha-botoes { display: flex; align-items: center; justify-content: center; gap: 1.25rem; width: 100%; }
+#gravar {
+  width: 5.5rem; height: 5.5rem; border-radius: 50%; padding: 0; border: 0;
+  background: var(--moss); color: var(--moss-ink); display: grid; place-items: center;
+  box-shadow: 0 0 0 6px var(--moss-soft);
+}
+#gravar svg { width: 2.2rem; height: 2.2rem; }
+#gravar.gravando { background: var(--rec); color: #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--rec) 25%, transparent); animation: respira 1.6s ease-in-out infinite; }
+@keyframes respira { 50% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--rec) 12%, transparent); } }
+.lateral { width: 3rem; height: 3rem; border-radius: 50%; padding: 0; display: grid; place-items: center; font-size: 0.75rem; }
+.estado { font-size: 0.85rem; color: var(--muted); text-align: center; min-height: 1.2em; }
+.teclado { display: grid; gap: 0.5rem; width: 100%; }
+.teclado textarea { width: 100%; min-height: 4.5rem; max-height: 10rem; resize: vertical; padding: 0.6rem 0.8rem; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); }
+.teclado .acoes { display: flex; justify-content: flex-end; gap: 0.5rem; }
+@media (prefers-reduced-motion: reduce) { #gravar.gravando, .pensando::before { animation: none; } }
+</style>
+</head>
+<body>
+
+<section class="entrada gutter" id="tela-entrada" hidden>
+  <form id="form-entrada">
+    <h1>Sala</h1>
+    <p class="dica">Conversa por voz com a Equipe do Postmaker. O PC precisa estar ligado.</p>
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" autocomplete="current-password" required>
+    <p class="erro" id="erro-entrada" role="alert"></p>
+    <button class="principal" type="submit">Entrar</button>
+  </form>
+</section>
+
+<header class="gutter" id="topo" hidden>
+  <div class="coluna">
+    <div class="topo">
+      <select id="agente" aria-label="Com quem você está falando"></select>
+      <button type="button" id="nova">Nova conversa</button>
+    </div>
+    <p class="funcao" id="funcao"></p>
+    <details class="historico" id="historico">
+      <summary>Conversas anteriores</summary>
+      <ul id="lista-conversas"></ul>
+    </details>
+  </div>
+</header>
+
+<main class="gutter" id="area" hidden>
+  <div class="coluna">
+    <div class="vazio" id="vazio">
+      <h2>Sobre o que vamos pensar?</h2>
+      <p class="dica">Toque no botão e fale. Ou comece por um destes temas:</p>
+      <div class="pauta" id="pauta"></div>
+    </div>
+    <div class="mensagens" id="mensagens" aria-live="polite"></div>
+  </div>
+</main>
+
+<footer class="gutter" id="rodape" hidden>
+  <div class="coluna controle">
+    <div class="ao-vivo" id="ao-vivo" aria-live="polite"></div>
+    <div class="linha-botoes">
+      <button type="button" class="lateral" id="btn-teclado" aria-label="Escrever em vez de falar">Aa</button>
+      <button type="button" id="gravar" aria-label="Gravar"></button>
+      <button type="button" class="lateral" id="btn-fechar" aria-label="Pedir o plano fechado">Plano</button>
+    </div>
+    <p class="estado" id="estado">Toque para falar</p>
+    <div class="teclado" id="teclado" hidden>
+      <textarea id="texto" aria-label="Sua mensagem" placeholder="Escreva aqui…"></textarea>
+      <div class="acoes"><button type="button" class="principal" id="enviar-texto">Enviar</button></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const REPO = "felipevidalx/postmaker-sala";
+const LOCAL = "sala-postmaker";
+const PAUTA = [
+  ["A oferta", "Quero pensar a oferta do Foundrs: para quem é, o que entrega, preço e formato. Me ajuda a fechar?"],
+  ["Modelo de negócio", "Vamos pensar o modelo de negócio: de onde vem o dinheiro da Akadi e do Foundrs, e quanto custa entregar."],
+  ["Projeções", "Faz uma projeção de receita até dezembro e até junho de 2027, em três cenários, com as premissas à vista."],
+  ["O que para de pé", "Das ideias que eu tenho hoje, o que para de pé e o que não para? Me pergunta o que precisar."],
+  ["O que não dá agora", "O que eu não teria como fazer agora, mesmo sendo uma boa ideia? E o que precisa acontecer antes?"],
+  ["Prioridade até dezembro", "Qual deveria ser a minha prioridade até o fim do ano? No máximo 3 coisas, em ordem."],
+];
+const FECHAR = "Fecha o plano agora, no formato do seu documento-base: oferta, modelo de negócio, projeção nos três cenários, o que para de pé e o que não para, o que não dá para fazer agora e a prioridade até 31 de dezembro.";
+
+let cfg = { senha: "", base: "", agente: null, conversa: null };
+let agentes = [];
+let conversa = null;
+let poll = null;
+
+const $ = (id) => document.getElementById(id);
+function guardar() { try { localStorage.setItem(LOCAL, JSON.stringify(cfg)); } catch {} }
+function lerLocal() { try { cfg = { ...cfg, ...JSON.parse(localStorage.getItem(LOCAL) || "{}") }; } catch {} }
+function el(tag, attrs = {}, ...filhos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+  }
+  for (const f of filhos) if (f != null) e.append(f);
+  return e;
+}
+
+/* ---------- endereço e API ---------- */
+async function descobrirEndereco() {
+  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/endereco.json?t=${Date.now()}`, { headers: { Accept: "application/vnd.github.raw+json" }, cache: "no-store" });
+  if (!r.ok) throw new Error("Não achei o endereço do Postmaker. O PC está ligado com o Postmaker aberto?");
+  const d = await r.json();
+  return d.url.replace(/\/$/, "");
+}
+async function api(caminho, opcoes = {}, tentouDeNovo = false) {
+  if (!cfg.base) cfg.base = await descobrirEndereco();
+  let r;
+  try {
+    r = await fetch(cfg.base + "/api/sala" + caminho, {
+      ...opcoes,
+      headers: { Accept: "application/json", "X-Senha": cfg.senha, ...(opcoes.json ? { "Content-Type": "application/json" } : {}), ...(opcoes.headers || {}) },
+      body: opcoes.json ? JSON.stringify(opcoes.json) : opcoes.body,
+    });
+  } catch {
+    // O túnel muda de endereço quando o PC reinicia: busca o novo e tenta uma vez mais.
+    if (!tentouDeNovo) { cfg.base = ""; return api(caminho, opcoes, true); }
+    throw new Error("Não consegui falar com o Postmaker. Confira se o PC está ligado e com internet.");
+  }
+  const dados = await r.json().catch(() => ({}));
+  if (r.status === 401) { sair("Senha errada."); throw new Error("Senha errada."); }
+  if (!r.ok) throw new Error(dados.message || "Algo deu errado no Postmaker.");
+  return dados;
+}
+
+/* ---------- entrada ---------- */
+function sair(msg) {
+  cfg.senha = ""; guardar();
+  ["topo", "area", "rodape"].forEach(id => $(id).hidden = true);
+  $("tela-entrada").hidden = false;
+  $("erro-entrada").textContent = msg || "";
+}
+$("form-entrada").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  cfg.senha = $("senha").value.trim();
+  $("erro-entrada").textContent = "Conectando…";
+  try { await iniciar(); } catch (e) { $("erro-entrada").textContent = e.message; }
+});
+
+async function iniciar() {
+  agentes = await api("/agentes");
+  guardar();
+  $("tela-entrada").hidden = true;
+  ["topo", "area", "rodape"].forEach(id => $(id).hidden = false);
+  const sel = $("agente");
+  sel.replaceChildren(...agentes.map(a => el("option", { value: a.id, text: `${a.icone || ""} ${a.nome}`.trim() })));
+  const socio = agentes.find(a => a.nome === "Sócio de Negócios");
+  cfg.agente = agentes.some(a => a.id === cfg.agente) ? cfg.agente : (socio || agentes[0])?.id;
+  sel.value = cfg.agente;
+  mostrarFuncao();
+  $("pauta").replaceChildren(...PAUTA.map(([rotulo, texto]) => el("button", { type: "button", text: rotulo, onclick: () => enviar(texto) })));
+  if (cfg.conversa) await abrirConversa(cfg.conversa).catch(() => novaConversa());
+  else render();
+  carregarHistorico();
+}
+function mostrarFuncao() { $("funcao").textContent = agentes.find(a => a.id === cfg.agente)?.funcao || ""; }
+
+$("agente").addEventListener("change", () => { cfg.agente = Number($("agente").value); mostrarFuncao(); novaConversa(); });
+$("nova").addEventListener("click", novaConversa);
+
+function novaConversa() { conversa = null; cfg.conversa = null; guardar(); pararPoll(); render(); }
+
+async function carregarHistorico() {
+  try {
+    const lista = await api("/conversas");
+    $("lista-conversas").replaceChildren(...lista.map(c => el("li", {}, el("button", { type: "button", onclick: () => { $("historico").open = false; abrirConversa(c.id); } },
+      el("span", { text: c.titulo || "Sem título" }), el("small", { text: `${c.agente} · ${new Date(c.quando).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}` })))));
+  } catch {}
+}
+
+async function abrirConversa(id) {
+  conversa = await api(`/conversas/${id}`);
+  cfg.conversa = conversa.id;
+  if (conversa.agente_id !== cfg.agente) { cfg.agente = conversa.agente_id; $("agente").value = cfg.agente; mostrarFuncao(); }
+  guardar(); render(); seguirSePensando();
+}
+
+/* ---------- conversa ---------- */
+const ocupado = () => conversa?.mensagens?.some(m => m.status === "na fila" || m.status === "pensando");
+function render() {
+  const msgs = conversa?.mensagens || [];
+  $("vazio").hidden = msgs.length > 0;
+  const box = $("mensagens");
+  box.replaceChildren(...msgs.map(m => {
+    const nome = m.autor === "voce" ? "Você" : (agentes.find(a => a.id === conversa.agente_id)?.nome || "Agente");
+    let corpo;
+    if (m.autor === "agente" && (m.status === "na fila" || m.status === "pensando")) {
+      const ultima = (m.atividade || []).slice(-1)[0];
+      corpo = el("p", { class: "pensando", text: m.status === "na fila" ? "Na fila…" : (ultima || "Pensando…") });
+    } else if (m.autor === "agente" && m.status === "falhou") {
+      corpo = el("p", { class: "erro", text: m.erro || "O agente não conseguiu responder." });
+    } else if (m.autor === "agente") {
+      corpo = el("div", { class: "bolha" }); corpo.innerHTML = markdown(m.texto || "");
+      corpo.querySelectorAll("table").forEach(t => { const w = el("div", { class: "tabela" }); t.replaceWith(w); w.append(t); });
+      corpo.querySelectorAll("a").forEach(a => { a.target = "_blank"; a.rel = "noopener"; });
+    } else {
+      corpo = el("div", { class: "bolha", text: m.texto });
+    }
+    return el("article", { class: `msg ${m.autor}` }, el("span", { class: "quem", text: nome }), corpo);
+  }));
+  $("gravar").disabled = false;
+  $("estado").textContent = ocupado() ? "O agente está respondendo. Pode ir gravando a próxima." : (gravando ? "Ouvindo… toque para enviar" : "Toque para falar");
+  const area = $("area"); area.scrollTop = area.scrollHeight;
+}
+function markdown(t) {
+  if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(t));
+  const d = document.createElement("div"); d.textContent = t; return `<p style="white-space:pre-wrap">${d.innerHTML}</p>`;
+}
+
+async function enviar(texto) {
+  texto = (texto || "").trim();
+  if (!texto) return;
+  if (ocupado()) { $("estado").textContent = "Espere o agente terminar de responder para mandar a próxima."; return false; }
+  try {
+    conversa = await api("/mensagens", { method: "POST", json: { texto, agente_id: cfg.agente, conversa_id: conversa?.id ?? null } });
+    cfg.conversa = conversa.id; guardar(); render(); seguirSePensando(); carregarHistorico();
+    return true;
+  } catch (e) { $("estado").textContent = e.message; return false; }
+}
+
+function pararPoll() { clearTimeout(poll); poll = null; }
+function seguirSePensando() {
+  pararPoll();
+  if (!ocupado()) return;
+  poll = setTimeout(async () => {
+    try { const c = await api(`/conversas/${conversa.id}`); if (c.id === conversa?.id) { conversa = c; render(); } } catch {}
+    seguirSePensando();
+  }, 3000);
+}
+
+/* ---------- gravar ---------- */
+const Reconhecimento = window.SpeechRecognition || window.webkitSpeechRecognition;
+let gravando = false, rec = null, desligando = false, finalTxt = "", gravador = null, pedacos = [];
+const MIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
+const STOP = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
+$("gravar").innerHTML = MIC;
+
+function marcarGravando(sim) {
+  gravando = sim;
+  $("gravar").classList.toggle("gravando", sim);
+  $("gravar").innerHTML = sim ? STOP : MIC;
+  $("gravar").setAttribute("aria-label", sim ? "Parar e enviar" : "Gravar");
+  $("estado").textContent = sim ? "Ouvindo… toque para enviar" : "Toque para falar";
+}
+
+$("gravar").addEventListener("click", () => {
+  if (gravando) return Reconhecimento ? pararDitado() : pararGravador();
+  return Reconhecimento ? comecarDitado() : comecarGravador();
+});
+
+// Chrome: o texto aparece enquanto você fala.
+function comecarDitado() {
+  finalTxt = ""; desligando = false;
+  rec = new Reconhecimento();
+  rec.lang = "pt-BR"; rec.continuous = true; rec.interimResults = true;
+  rec.onresult = (ev) => {
+    let parcial = "";
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const t = ev.results[i][0].transcript;
+      if (ev.results[i].isFinal) finalTxt += (finalTxt ? " " : "") + t.trim(); else parcial += t;
+    }
+    const v = $("ao-vivo"); v.replaceChildren(el("b", { text: finalTxt }), " " + parcial); v.scrollTop = v.scrollHeight;
+  };
+  rec.onerror = (ev) => {
+    const msg = { "not-allowed": "O navegador bloqueou o microfone. Libere o microfone para este site.", "network": "O ditado precisa de internet.", "audio-capture": "Não achei um microfone." }[ev.error];
+    if (msg) { desligando = true; $("estado").textContent = msg; }
+  };
+  rec.onend = async () => {
+    if (!desligando) { try { rec.start(); return; } catch {} }
+    marcarGravando(false);
+    const texto = finalTxt.trim();
+    if (!texto) { $("ao-vivo").textContent = ""; return; }
+    $("ao-vivo").textContent = "Enviando…";
+    if (await enviar(texto)) $("ao-vivo").textContent = "";
+    else { $("ao-vivo").textContent = ""; abrirTeclado(texto); }
+  };
+  try { rec.start(); marcarGravando(true); $("ao-vivo").textContent = ""; } catch { $("estado").textContent = "Não consegui ligar o microfone."; }
+}
+function pararDitado() { desligando = true; try { rec.stop(); } catch {} }
+
+// Sem ditado no navegador (ex.: iPhone): grava o áudio e o Whisper do PC transcreve.
+async function comecarGravador() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    pedacos = [];
+    gravador = new MediaRecorder(stream);
+    gravador.ondataavailable = (e) => e.data.size && pedacos.push(e.data);
+    gravador.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      marcarGravando(false);
+      $("ao-vivo").textContent = "Transcrevendo no PC…";
+      try {
+        const fd = new FormData();
+        fd.append("audio", new Blob(pedacos, { type: gravador.mimeType }), "fala");
+        const { texto } = await api("/transcrever", { method: "POST", body: fd });
+        $("ao-vivo").textContent = "Enviando…";
+        if (await enviar(texto)) $("ao-vivo").textContent = ""; else { $("ao-vivo").textContent = ""; abrirTeclado(texto); }
+      } catch (e) { $("ao-vivo").textContent = ""; $("estado").textContent = e.message; }
+    };
+    gravador.start();
+    marcarGravando(true);
+  } catch { $("estado").textContent = "O navegador bloqueou o microfone. Libere o microfone para este site."; }
+}
+function pararGravador() { try { gravador.stop(); } catch {} }
+
+/* ---------- teclado e plano ---------- */
+function abrirTeclado(texto) {
+  $("teclado").hidden = false;
+  if (texto) $("texto").value = texto;
+  $("texto").focus();
+}
+$("btn-teclado").addEventListener("click", () => { $("teclado").hidden ? abrirTeclado() : ($("teclado").hidden = true); });
+$("enviar-texto").addEventListener("click", async () => { if (await enviar($("texto").value)) { $("texto").value = ""; $("teclado").hidden = true; } });
+$("btn-fechar").addEventListener("click", () => enviar(FECHAR));
+
+/* ---------- começo ---------- */
+lerLocal();
+// Com a senha guardada, um erro de conexão (PC desligado) não apaga a senha: só mostra o aviso.
+if (cfg.senha) iniciar().catch(e => { $("tela-entrada").hidden = false; $("senha").value = cfg.senha; $("erro-entrada").textContent = e.message; });
+else sair();
+</script>
+</body>
+</html>
