@@ -66,8 +66,28 @@ button { cursor: pointer; }
 .palco { display: grid; justify-items: center; gap: 0.4rem; padding-top: 0.5rem; }
 .nome { font-family: var(--display); font-size: 1.5rem; }
 .funcao { font-size: 0.9rem; color: var(--tinta-2); text-align: center; max-width: 30rem; }
-#boneco { border: 0; background: none; padding: 0; width: min(16rem, 64vw); aspect-ratio: 1; border-radius: 50%; -webkit-tap-highlight-color: transparent; }
-#boneco svg { width: 100%; height: 100%; overflow: visible; }
+.mesa { display: flex; justify-content: center; align-items: flex-end; gap: 0.5rem; width: 100%; }
+.lugar { display: grid; justify-items: center; gap: 0.1rem; flex: 0 1 auto; min-width: 0; }
+.lugar small { font-size: 0.8rem; color: var(--tinta-2); text-align: center; line-height: 1.2; }
+.lugar.falando small { color: var(--tinta); font-weight: 700; }
+.boneco { border: 0; background: none; padding: 0; width: min(16rem, 64vw); aspect-ratio: 1; border-radius: 50%; -webkit-tap-highlight-color: transparent; }
+.mesa[data-n="2"] .boneco { width: min(11rem, 42vw); }
+.mesa[data-n="3"] .boneco, .mesa[data-n="4"] .boneco { width: min(8rem, 28vw); }
+.boneco svg { width: 100%; height: 100%; overflow: visible; }
+.escolher { display: flex; justify-content: center; }
+.escolher button { font-size: 0.82rem; border-radius: 99px; padding: 0.3rem 0.8rem; border: 1px solid var(--gelo-3); background: rgb(255 255 255 / 0.7); color: var(--tinta-2); }
+.escolher button[aria-pressed="true"] { background: var(--tinta); color: var(--neve); border-color: var(--tinta); }
+.falas { display: grid; gap: 0.8rem; }
+.quem-fala { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: var(--tinta-2); margin: 0 0 0.4rem; }
+.quem-fala span { width: 1.6rem; height: 1.6rem; display: inline-grid; }
+.quem-fala svg { width: 100%; height: 100%; }
+.cursor-fala::after { content: "▍"; color: var(--tinta-2); animation: pisca 1s steps(2) infinite; }
+@keyframes pisca { 50% { opacity: 0; } }
+.acoes-agente { display: grid; gap: 0.45rem; margin-top: 0.4rem; }
+.acoes-agente p { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: var(--tinta-2); margin: 0; }
+.acoes-agente button { text-align: left; border-radius: 14px; padding: 0.6rem 0.8rem; border: 1px solid var(--gelo-3); background: var(--gelo); font-size: 0.95rem; }
+.acoes-agente button b { display: block; font-size: 0.78rem; color: var(--azul); }
+.acoes-agente button:disabled { opacity: 0.7; cursor: default; }
 .estado { font-size: 0.92rem; color: var(--tinta-2); min-height: 1.4em; text-align: center; }
 .estado b { color: var(--vermelho); }
 
@@ -124,24 +144,25 @@ details.bloco summary { cursor: pointer; color: var(--tinta-2); font-size: 0.92r
 
 <main class="coluna" id="app" hidden>
   <nav class="equipe" id="equipe" aria-label="Com quem você quer falar"></nav>
+  <div class="escolher"><button type="button" id="btn-reuniao" aria-pressed="false">Reunião: chamar mais de um</button></div>
 
   <section class="palco">
     <p class="nome" id="nome"></p>
     <p class="funcao" id="funcao"></p>
-    <button type="button" id="boneco" aria-label="Tocar para falar"></button>
+    <div class="mesa" id="mesa"></div>
     <p class="fala" id="fala" aria-live="polite" hidden></p>
     <p class="estado" id="estado" aria-live="polite">Toque em mim para falar</p>
   </section>
 
-  <section class="retorno" aria-live="polite">
-    <div id="resposta"></div>
+  <section class="retorno">
+    <div class="falas" id="resposta"></div>
   </section>
 
   <div class="pauta" id="pauta"></div>
 
   <div class="acoes">
     <button type="button" class="botao" id="btn-teclado">Escrever</button>
-    <button type="button" class="botao" id="btn-plano">Fechar o plano</button>
+    <button type="button" class="botao" id="btn-plano">Chegar numa resolução</button>
     <button type="button" class="botao" id="nova">Nova conversa</button>
   </div>
   <div class="teclado" id="teclado" hidden>
@@ -162,7 +183,9 @@ details.bloco summary { cursor: pointer; color: var(--tinta-2); font-size: 0.92r
 <script>
 const REPO = "felipevidalx/postmaker-sala";
 const LOCAL = "sala-postmaker";
+// Pauta pronta com mesa definida: [rótulo, texto, nomes dos agentes (vazio = quem está na mesa)].
 const PAUTA = [
+  ["Perfil do sócio, com os 2 Advisors", "Quero definir o perfil do sócio ideal para mim, pensando na Akadi e no Foundrs: o que ele precisa ter que eu não tenho, onde achar essa pessoa e como testar antes de dividir a empresa. Comecem me fazendo as perguntas que vocês precisam, uma de cada vez.", ["Advisor", "Advisor de Escala"]],
   ["A oferta", "Quero pensar a oferta do Foundrs: para quem é, o que entrega, preço e formato. Me ajuda a fechar?"],
   ["Modelo de negócio", "Vamos pensar o modelo de negócio: de onde vem o dinheiro da Akadi e do Foundrs, e quanto custa entregar."],
   ["Projeções", "Faz uma projeção de receita até dezembro e até junho de 2027, em três cenários, com as premissas à vista."],
@@ -170,7 +193,7 @@ const PAUTA = [
   ["O que não dá agora", "O que eu não teria como fazer agora, mesmo sendo uma boa ideia? E o que precisa acontecer antes?"],
   ["Prioridade até dezembro", "Qual deveria ser a minha prioridade até o fim do ano? No máximo 3 coisas, em ordem."],
 ];
-const FECHAR = "Fecha o plano agora, no formato do seu documento-base: oferta, modelo de negócio, projeção nos três cenários, o que para de pé e o que não para, o que não dá para fazer agora e a prioridade até 31 de dezembro.";
+const FECHAR = "Vamos chegar numa resolução: resuma em poucas linhas o que decidimos até aqui, o que ainda está em aberto, e liste as tarefas para a equipe no bloco AÇÕES.";
 
 /* ================= carinhas ================= */
 // Cada agente tem cor e um detalhe próprio. Agente novo sem entrada aqui ganha cor e detalhe pelo nome.
@@ -255,69 +278,79 @@ function bonecoSvg(nome, id) {
 }
 
 /* ================= animação ================= */
-// Estados: ocioso (respira e pisca), ouvindo (mexe com a sua voz), pensando (olha em volta), respondeu (pulinho).
-const anima = { estado: "ocioso", energia: 0, alvo: 0, t0: performance.now(), pulo: 0, piscar: 0, proximaPiscada: 2000 };
+// Cada bonequinho da mesa tem o seu estado: ocioso (respira e pisca), ouvindo (mexe com a sua voz), pensando
+// (olha em volta), falando (boca mexendo enquanto o texto dele aparece) e respondeu (pulinho).
 const calmo = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-function mudarEstado(e) { anima.estado = e; if (e === "respondeu") anima.pulo = 1; }
-
-// Olhar: segue o cursor (ou o dedo) pela tela inteira; o corpo também se inclina um pouco para lá.
-const olhar = { x: 0, y: 0, ax: 0, ay: 0 };
-function mirar(cx, cy) {
-  const b = document.getElementById("boneco");
-  if (!b || b.offsetParent === null) return;
-  const r = b.getBoundingClientRect();
-  const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height * 0.45);
-  const d = Math.hypot(dx, dy) || 1, alcance = Math.min(1, d / (r.width * 0.5));
-  olhar.ax = (dx / d) * alcance; olhar.ay = (dy / d) * alcance;
+const T0 = performance.now();
+const animas = {};
+function anima(id) {
+  return animas[id] ??= { estado: "ocioso", energia: 0, alvo: 0, pulo: 0, piscar: 0, proximaPiscada: performance.now() + 1500 + Math.random() * 2000, fala: 0, ox: 0, oy: 0 };
 }
-window.addEventListener("pointermove", (e) => mirar(e.clientX, e.clientY), { passive: true });
-window.addEventListener("pointerdown", (e) => mirar(e.clientX, e.clientY), { passive: true });
-document.addEventListener("mouseleave", () => { olhar.ax = 0; olhar.ay = 0; });
-function cutucar(forca = 1) { anima.alvo = Math.min(1, anima.alvo + 0.45 * forca); }
+function mudarEstado(id, e) { const a = anima(id); if (e === "respondeu" && a.estado !== "respondeu") a.pulo = 1; a.estado = e; }
+function cutucar(forca = 1) { for (const id of cfg.mesa) { const a = anima(id); a.alvo = Math.min(1, a.alvo + 0.45 * forca); } }
+
+// Olhar: todos seguem o cursor (ou o dedo) pela tela inteira; o corpo também se inclina para lá.
+let ponteiro = null;
+window.addEventListener("pointermove", (e) => { ponteiro = [e.clientX, e.clientY]; }, { passive: true });
+window.addEventListener("pointerdown", (e) => { ponteiro = [e.clientX, e.clientY]; }, { passive: true });
+document.addEventListener("mouseleave", () => { ponteiro = null; });
 
 function quadro(agora) {
-  const svg = document.querySelector("#boneco svg");
-  if (svg && !calmo) {
-    const t = (agora - anima.t0) / 1000;
-    anima.energia += (anima.alvo - anima.energia) * 0.25;
-    anima.alvo *= 0.9;
-    anima.pulo *= 0.93;
-    const e = anima.estado === "ouvindo" ? Math.max(anima.energia, 0.12 + 0.06 * Math.sin(t * 6)) : 0;
-    const resp = Math.sin(t * 2.1) * 0.018;
-    const sy = 1 + resp + e * 0.08 - anima.pulo * 0.05;
-    const sx = 1 - resp * 0.6 + e * 0.05 + anima.pulo * 0.04;
-    const dy = -Math.abs(Math.sin(t * 9)) * e * 10 - anima.pulo * 14 * Math.abs(Math.sin(t * 7));
-    olhar.x += (olhar.ax - olhar.x) * 0.18; olhar.y += (olhar.ay - olhar.y) * 0.18;
-    const segue = anima.estado === "pensando" ? 0 : 1;
-    const incl = (anima.estado === "pensando" ? Math.sin(t * 1.6) * 4 : Math.sin(t * 1.1) * 1.2 + e * Math.sin(t * 13) * 3) + olhar.x * 14 * segue;
-    svg.querySelector(".corpo").setAttribute("transform", `translate(100 176) rotate(${incl}) scale(${sx} ${sy}) translate(-100 -176) translate(${olhar.x * 16 * segue} ${dy + olhar.y * 8 * segue})`);
-    svg.querySelector(".rosto-g").setAttribute("transform", `translate(${olhar.x * 16 * segue} ${olhar.y * 13 * segue})`);
-    svg.querySelector(".sombra").setAttribute("transform", `translate(100 182) scale(${1 - Math.min(0.3, -dy / 60)} 1) translate(-100 -182)`);
-
-    // olhos: piscar, e olhar em volta quando está pensando
-    if (agora > anima.proximaPiscada) { anima.piscar = 1; anima.proximaPiscada = agora + 2500 + Math.random() * 3000; }
-    anima.piscar *= 0.75;
-    const fecha = anima.piscar > 0.2 ? 0.1 : 1;
-    const ox = anima.estado === "pensando" ? Math.sin(t * 1.3) * 7 : olhar.x * 7;
-    const oy = anima.estado === "pensando" ? -4 : olhar.y * 6;
-    svg.querySelectorAll(".olho").forEach(o => o.style.transform = `translate(${ox}px, ${oy}px) scaleY(${fecha * (anima.estado === "respondeu" && anima.pulo > 0.3 ? 0.55 : 1)})`);
-
-    // boca: abre com a voz, reta pensando, sorriso no resto
-    const boca = svg.querySelector(".boca");
-    if (anima.estado === "ouvindo") { const a = 4 + e * 16; boca.setAttribute("d", `M90 ${124 - a / 3}q10 ${a} 20 0q-10 -${a / 2} -20 0z`); boca.setAttribute("fill", "hsl(0 40% 30% / .8)"); }
-    else if (anima.estado === "pensando") { boca.setAttribute("d", "M90 126q10 -3 20 0"); boca.setAttribute("fill", "none"); }
-    else { boca.setAttribute("d", `M86 122q14 ${12 + anima.pulo * 6} 28 0`); boca.setAttribute("fill", "none"); }
-
-    const pontos = svg.querySelector(".pontos");
-    pontos.setAttribute("opacity", anima.estado === "pensando" ? String(0.55 + 0.45 * Math.sin(t * 3)) : "0");
-  }
+  revelarFalas(agora);
+  if (!calmo) document.querySelectorAll(".boneco[data-agente]").forEach(b => desenharQuadro(b, agora));
   requestAnimationFrame(quadro);
+}
+function desenharQuadro(botao, agora) {
+  const svg = botao.querySelector("svg");
+  if (!svg) return;
+  const a = anima(Number(botao.dataset.agente));
+  const t = (agora - T0) / 1000 + Number(botao.dataset.agente);
+  a.energia += (a.alvo - a.energia) * 0.25; a.alvo *= 0.9; a.pulo *= 0.93;
+
+  let ax = 0, ay = 0;
+  if (ponteiro) {
+    const r = botao.getBoundingClientRect();
+    const dx = ponteiro[0] - (r.left + r.width / 2), dy = ponteiro[1] - (r.top + r.height * 0.45);
+    const d = Math.hypot(dx, dy) || 1, alcance = Math.min(1, d / (r.width * 0.5));
+    ax = (dx / d) * alcance; ay = (dy / d) * alcance;
+  }
+  a.ox += (ax - a.ox) * 0.18; a.oy += (ay - a.oy) * 0.18;
+
+  const e = a.estado === "ouvindo" ? Math.max(a.energia, 0.12 + 0.06 * Math.sin(t * 6)) : 0;
+  const fala = a.estado === "falando" ? 0.5 + 0.5 * Math.sin(t * 17) * Math.sin(t * 5.3) : 0;
+  const resp = Math.sin(t * 2.1) * 0.018;
+  const sy = 1 + resp + e * 0.08 + fala * 0.03 - a.pulo * 0.05;
+  const sx = 1 - resp * 0.6 + e * 0.05 + a.pulo * 0.04;
+  const dy = -Math.abs(Math.sin(t * 9)) * e * 10 - fala * 3 - a.pulo * 14 * Math.abs(Math.sin(t * 7));
+  const segue = a.estado === "pensando" ? 0 : 1;
+  const incl = (a.estado === "pensando" ? Math.sin(t * 1.6) * 4 : Math.sin(t * 1.1) * 1.2 + e * Math.sin(t * 13) * 3) + a.ox * 14 * segue;
+  svg.querySelector(".corpo").setAttribute("transform", `translate(100 176) rotate(${incl}) scale(${sx} ${sy}) translate(-100 -176) translate(${a.ox * 16 * segue} ${dy + a.oy * 8 * segue})`);
+  svg.querySelector(".rosto-g").setAttribute("transform", `translate(${a.ox * 16 * segue} ${a.oy * 13 * segue})`);
+  svg.querySelector(".sombra").setAttribute("transform", `translate(100 182) scale(${1 - Math.min(0.3, -dy / 60)} 1) translate(-100 -182)`);
+
+  if (agora > a.proximaPiscada) { a.piscar = 1; a.proximaPiscada = agora + 2500 + Math.random() * 3000; }
+  a.piscar *= 0.75;
+  const fecha = a.piscar > 0.2 ? 0.1 : 1;
+  const ox = a.estado === "pensando" ? Math.sin(t * 1.3) * 7 : a.ox * 7;
+  const oy = a.estado === "pensando" ? -4 : a.oy * 6;
+  svg.querySelectorAll(".olho").forEach(o => o.style.transform = `translate(${ox}px, ${oy}px) scaleY(${fecha * (a.estado === "respondeu" && a.pulo > 0.3 ? 0.55 : 1)})`);
+
+  // boca: abre com a sua voz, mexe quando ele fala, reta pensando, sorriso no resto
+  const boca = svg.querySelector(".boca");
+  if (a.estado === "ouvindo") { const h = 4 + e * 16; boca.setAttribute("d", `M90 ${124 - h / 3}q10 ${h} 20 0q-10 -${h / 2} -20 0z`); boca.setAttribute("fill", "hsl(0 40% 30% / .8)"); }
+  else if (a.estado === "falando") { const h = 3 + fala * 14; boca.setAttribute("d", `M89 ${123 - h / 3}q11 ${h} 22 0q-11 -${h / 2} -22 0z`); boca.setAttribute("fill", "hsl(0 40% 30% / .8)"); }
+  else if (a.estado === "pensando") { boca.setAttribute("d", "M90 126q10 -3 20 0"); boca.setAttribute("fill", "none"); }
+  else { boca.setAttribute("d", `M86 122q14 ${12 + a.pulo * 6} 28 0`); boca.setAttribute("fill", "none"); }
+
+  svg.querySelector(".pontos").setAttribute("opacity", a.estado === "pensando" ? String(0.55 + 0.45 * Math.sin(t * 3)) : "0");
 }
 requestAnimationFrame(quadro);
 
 /* ================= estado e API ================= */
-let cfg = { senha: "", base: "", agente: null, conversa: null };
-let agentes = [], conversa = null, poll = null, ultimoRespondido = null;
+let cfg = { senha: "", base: "", mesa: [], reuniao: null, modo: null };
+let agentes = [], reuniao = null, poll = null, varias = false;
+const mostrados = {};      // quanto da fala de cada mensagem já apareceu na tela
+const enviadas = new Set(); // ações já mandadas para a equipe
 const $ = (id) => document.getElementById(id);
 function guardar() { try { localStorage.setItem(LOCAL, JSON.stringify(cfg)); } catch {} }
 function lerLocal() { try { cfg = { ...cfg, ...JSON.parse(localStorage.getItem(LOCAL) || "{}") }; } catch {} }
@@ -330,7 +363,11 @@ function el(tag, attrs = {}, ...filhos) {
   for (const f of filhos) if (f != null) e.append(f);
   return e;
 }
-const agenteAtual = () => agentes.find(a => a.id === cfg.agente);
+const agentePor = (id) => agentes.find(a => a.id === id);
+const agentePorNome = (nome) => {
+  const n = (nome || "").trim().toLowerCase();
+  return agentes.find(a => a.nome.toLowerCase() === n) || agentes.find(a => a.nome.toLowerCase().startsWith(n) || n.startsWith(a.nome.toLowerCase()));
+};
 
 async function descobrirEndereco() {
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/endereco.json?t=${Date.now()}`, { headers: { Accept: "application/vnd.github.raw+json" }, cache: "no-store" });
@@ -375,86 +412,200 @@ async function iniciar() {
   agentes = await api("/agentes");
   guardar();
   $("tela-entrada").hidden = true; $("app").hidden = false;
-  const socio = agentes.find(a => a.nome === "Sócio de Negócios");
-  cfg.agente = agentes.some(a => a.id === cfg.agente) ? cfg.agente : (socio || agentes[0])?.id;
-  desenharEquipe(); desenharPalco();
-  $("pauta").replaceChildren(...PAUTA.map(([rotulo, texto]) => el("button", { type: "button", text: rotulo, onclick: () => enviar(texto) })));
-  if (cfg.conversa) await abrirConversa(cfg.conversa).catch(() => novaConversa());
+  cfg.mesa = (cfg.mesa || []).filter(id => agentePor(id));
+  if (!cfg.mesa.length) cfg.mesa = [(agentes.find(a => a.nome === "Sócio de Negócios") || agentes[0]).id];
+  varias = cfg.mesa.length > 1;
+  desenharEquipe(); desenharMesa();
+  $("pauta").replaceChildren(...PAUTA.map(([rotulo, texto, nomes]) => el("button", { type: "button", text: rotulo, onclick: () => pautar(texto, nomes) })));
+  if (cfg.reuniao) await abrirReuniao(cfg.reuniao, true).catch(() => novaConversa());
   else render();
   carregarHistorico();
 }
 
+/* ================= quem está na mesa ================= */
 function desenharEquipe() {
+  $("btn-reuniao").setAttribute("aria-pressed", String(varias));
   $("equipe").replaceChildren(...agentes.map(a => el("button", {
-    type: "button", "aria-pressed": String(a.id === cfg.agente), onclick: () => trocarAgente(a.id),
+    type: "button", "aria-pressed": String(cfg.mesa.includes(a.id)), onclick: () => tocarRosto(a.id),
   }, el("span", { class: "rosto", html: bonecoSvg(a.nome, "m" + a.id) }), el("span", { text: a.nome }))));
 }
-function desenharPalco() {
-  const a = agenteAtual();
-  $("nome").textContent = a?.nome || "";
-  $("funcao").textContent = a?.funcao || "";
-  $("boneco").innerHTML = bonecoSvg(a?.nome, "b" + (a?.id ?? 0));
+function desenharMesa() {
+  const mesa = $("mesa");
+  mesa.dataset.n = cfg.mesa.length;
+  const um = cfg.mesa.length === 1 ? agentePor(cfg.mesa[0]) : null;
+  $("nome").textContent = um ? um.nome : "Reunião";
+  $("funcao").textContent = um ? um.funcao : cfg.mesa.map(id => agentePor(id)?.nome).join(" · ");
+  mesa.replaceChildren(...cfg.mesa.map(id => {
+    const a = agentePor(id);
+    const b = el("button", { type: "button", class: "boneco", "data-agente": id, "aria-label": `Tocar para falar com ${a?.nome}`, html: bonecoSvg(a?.nome, "b" + id) });
+    b.addEventListener("click", tocarBoneco);
+    return el("div", { class: "lugar", "data-lugar": id }, b, cfg.mesa.length > 1 ? el("small", { text: a?.nome }) : null);
+  }));
 }
-function trocarAgente(id) {
+function tocarRosto(id) {
   if (gravando) return;
-  cfg.agente = id; guardar(); desenharEquipe(); desenharPalco(); novaConversa();
+  if (varias) {
+    const tem = cfg.mesa.includes(id);
+    if (tem && cfg.mesa.length === 1) return;
+    if (!tem && cfg.mesa.length >= 4) { $("estado").textContent = "Cabem até 4 na mesa."; return; }
+    cfg.mesa = tem ? cfg.mesa.filter(x => x !== id) : [...cfg.mesa, id];
+  } else cfg.mesa = [id];
+  guardar(); desenharEquipe(); desenharMesa(); novaConversa();
+}
+$("btn-reuniao").addEventListener("click", () => {
+  varias = !varias;
+  if (!varias && cfg.mesa.length > 1) { cfg.mesa = [cfg.mesa[0]]; guardar(); desenharMesa(); novaConversa(); }
+  desenharEquipe();
+  $("estado").textContent = varias ? "Toque nas carinhas para chamar quem você quer na reunião." : "Toque em mim para falar";
+});
+function pautar(texto, nomes) {
+  if (nomes?.length) {
+    const ids = nomes.map(n => agentePorNome(n)?.id).filter(Boolean);
+    if (ids.length && ids.join() !== cfg.mesa.join()) {
+      cfg.mesa = ids; varias = ids.length > 1; guardar(); desenharEquipe(); desenharMesa(); novaConversa();
+    }
+  }
+  enviar(texto);
 }
 
 /* ================= conversa ================= */
-const ocupado = () => conversa?.mensagens?.some(m => m.status === "na fila" || m.status === "pensando");
+const pendentes = () => (reuniao?.mensagens || []).filter(m => m.status === "na fila" || m.status === "pensando");
+const ocupado = () => pendentes().length > 0;
 function markdown(t) {
   if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(t));
   const d = document.createElement("div"); d.textContent = t; return `<p style="white-space:pre-wrap">${d.innerHTML}</p>`;
 }
-function cartaoResposta(texto) {
-  const c = el("div", { class: "cartao", html: markdown(texto || "") });
-  c.querySelectorAll("table").forEach(t => { const w = el("div", { class: "tabela" }); t.replaceWith(w); w.append(t); });
-  c.querySelectorAll("a").forEach(a => { a.target = "_blank"; a.rel = "noopener"; });
-  return c;
+// A fala do agente sem o bloco AÇÕES, e as ações separadas ("- Nome do agente: tarefa").
+function separarAcoes(texto) {
+  const m = (texto || "").match(/\n\s*\**AÇÕES:?\**\s*\n([\s\S]*)$/i);
+  if (!m) return { fala: texto || "", acoes: [] };
+  const acoes = m[1].split("\n").map(l => l.replace(/^\s*[-*•]\s*/, "").trim()).filter(Boolean)
+    .map(l => { const i = l.indexOf(":"); return i > 0 ? { nome: l.slice(0, i).replace(/\*/g, "").trim(), tarefa: l.slice(i + 1).trim() } : null; })
+    .filter(a => a && a.tarefa);
+  return { fala: texto.slice(0, m.index), acoes };
+}
+function textoAlvo(m) { return m.status === "pronta" ? separarAcoes(m.texto).fala : separarAcoes(m.parcial || "").fala; }
+
+// Só a rodada de agora fica embaixo dos bonequinhos; as anteriores vão para "Conversa inteira".
+function rodadaAtual() {
+  const msgs = reuniao?.mensagens || [];
+  const i = msgs.map(m => m.autor).lastIndexOf("voce");
+  return { voce: msgs[i], falas: msgs.slice(i + 1), anteriores: msgs.slice(0, Math.max(0, i)) };
 }
 
 function render() {
-  const msgs = conversa?.mensagens || [];
-  const ultimaVoce = [...msgs].reverse().find(m => m.autor === "voce");
-  const ultimaAgente = [...msgs].reverse().find(m => m.autor === "agente");
+  const msgs = reuniao?.mensagens || [];
+  const { voce, falas, anteriores } = rodadaAtual();
   $("pauta").hidden = msgs.length > 0;
-
   if (!gravando) {
-    if (ultimaVoce) mostrarFala(ultimaVoce.texto);
+    if (voce) mostrarFala(voce.texto);
     else if (!msgs.length && !$("fala").textContent.startsWith("Não ouvi")) $("fala").hidden = true;
   }
 
-  const resposta = $("resposta");
-  if (!ultimaAgente) resposta.replaceChildren();
-  else if (ultimaAgente.status === "na fila" || ultimaAgente.status === "pensando") {
-    resposta.replaceChildren(el("p", { class: "pensando", text: ultimaAgente.status === "na fila" ? "Na fila…" : ((ultimaAgente.atividade || []).slice(-1)[0] || "Pensando…") }));
-  } else if (ultimaAgente.status === "falhou") {
-    resposta.replaceChildren(el("p", { class: "erro", text: ultimaAgente.erro || "Não consegui responder desta vez." }));
-  } else {
-    resposta.replaceChildren(cartaoResposta(ultimaAgente.texto));
-  }
+  $("resposta").replaceChildren(...falas.map(m => {
+    const a = agentePor(m.agente_id);
+    const cab = el("p", { class: "quem-fala" }, el("span", { html: bonecoSvg(a?.nome, "q" + m.id) }), a?.nome || "Agente");
+    if (m.status === "falhou") return el("div", { class: "cartao" }, cab, el("p", { class: "erro", text: m.erro || "Não consegui responder desta vez." }));
+    const corpo = el("div", { class: "corpo-fala", "data-msg": m.id });
+    const caixa = el("div", { class: "cartao" }, cab, corpo);
+    if (!textoAlvo(m) && m.status !== "pronta") {
+      corpo.append(el("p", { class: "pensando", text: m.status === "na fila" ? "Esperando a vez…" : ((m.atividade || []).slice(-1)[0] || "Pensando…") }));
+    }
+    return caixa;
+  }));
+  falas.forEach(m => desenharFala(m));
 
-  if (!gravando) {
-    if (ocupado()) { mudarEstado("pensando"); $("estado").textContent = "Estou pensando…"; }
-    else if (anima.estado === "pensando") mudarEstado("respondeu");
-    if (!ocupado()) $("estado").textContent = msgs.length ? "Toque em mim para responder" : "Toque em mim para falar";
-  }
+  if (!gravando) atualizarEstados();
 
-  // Conversa inteira, para quando a resposta de agora não basta.
-  const anteriores = msgs.slice(0, -2);
   $("bloco-fio").hidden = anteriores.length === 0;
   $("fio").replaceChildren(...anteriores.map(m => m.autor === "voce"
     ? el("div", { class: "voce", text: m.texto })
-    : el("div", {}, el("p", { class: "quem", text: agenteAtual()?.nome || "Agente" }), m.status === "pronta" ? cartaoResposta(m.texto) : el("p", { class: "dica", text: m.erro || "" }))));
+    : el("div", {}, el("p", { class: "quem", text: agentePor(m.agente_id)?.nome || "Agente" }),
+        m.status === "pronta" ? el("div", { class: "cartao", html: markdown(separarAcoes(m.texto).fala) }) : el("p", { class: "dica", text: m.erro || "" }))));
+}
+
+// Escreve na tela a parte da fala que já "foi dita"; quando termina, mostra as ações.
+function desenharFala(m) {
+  const corpo = document.querySelector(`.corpo-fala[data-msg="${m.id}"]`);
+  if (!corpo) return;
+  const alvo = textoAlvo(m);
+  if (!alvo) return;
+  const n = Math.min(mostrados[m.id] ?? 0, alvo.length);
+  const terminou = m.status === "pronta" && n >= alvo.length;
+  corpo.classList.remove("cursor-fala");
+  corpo.innerHTML = markdown(alvo.slice(0, n));
+  corpo.querySelectorAll("a").forEach(a => { a.target = "_blank"; a.rel = "noopener"; });
+  if (!terminou) { const ult = corpo.lastElementChild || corpo; ult.classList.add("cursor-fala"); return; }
+  const { acoes } = separarAcoes(m.texto);
+  if (acoes.length) corpo.append(blocoAcoes(m, acoes));
+}
+
+let ultimoQuadroFala = 0;
+function revelarFalas(agora) {
+  if (agora - ultimoQuadroFala < 60) return;
+  const passo = Math.max(1, Math.round((agora - ultimoQuadroFala) / 1000 * 38));
+  ultimoQuadroFala = agora;
+  if (!reuniao) return;
+  let mudou = false;
+  // Uma fala de cada vez, na ordem da mesa.
+  for (const m of rodadaAtual().falas) {
+    const alvo = textoAlvo(m);
+    const n = mostrados[m.id] ?? 0;
+    if (n < alvo.length) { mostrados[m.id] = Math.min(alvo.length, n + passo); desenharFala(m); mudou = true; break; }
+    if (m.status !== "pronta") break;
+    if (!m._fim) { m._fim = true; desenharFala(m); mudou = true; }
+  }
+  if (mudou && !gravando) atualizarEstados();
+}
+
+function atualizarEstados() {
+  const { falas } = rodadaAtual();
+  const falandoAgora = falas.find(m => (mostrados[m.id] ?? 0) < textoAlvo(m).length);
+  for (const id of cfg.mesa) {
+    const minhas = falas.filter(m => m.agente_id === id);
+    const m = minhas[minhas.length - 1];
+    let e = "ocioso";
+    if (falandoAgora && falandoAgora.agente_id === id) e = "falando";
+    else if (m && (m.status === "na fila" || m.status === "pensando")) e = "pensando";
+    else if (m && m.status === "pronta") e = "respondeu";
+    mudarEstado(id, e);
+    document.querySelector(`.lugar[data-lugar="${id}"]`)?.classList.toggle("falando", e === "falando");
+  }
+  if (falandoAgora) $("estado").textContent = `${agentePor(falandoAgora.agente_id)?.nome || "Agente"} está falando…`;
+  else if (ocupado()) $("estado").textContent = "Pensando…";
+  else $("estado").textContent = (reuniao?.mensagens || []).length ? "Toque para responder" : "Toque em mim para falar";
+}
+
+function blocoAcoes(m, acoes) {
+  return el("div", { class: "acoes-agente" },
+    el("p", { text: "Mandar para a equipe" }),
+    ...acoes.map((a, i) => {
+      const chave = `${m.id}-${i}`;
+      const alvo = agentePorNome(a.nome);
+      const b = el("button", { type: "button" }, el("b", { text: alvo ? alvo.nome : a.nome }), a.tarefa);
+      if (!alvo) { b.disabled = true; b.title = "Esse agente não existe na equipe."; }
+      if (enviadas.has(chave)) { b.disabled = true; b.firstChild.textContent += " · enviado ✓"; }
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        const origem = agentePor(m.agente_id)?.nome || "a Sala";
+        const texto = `${a.tarefa}\n\nContexto: isto saiu de uma conversa por voz com ${origem}. O que foi dito:\n\n${separarAcoes(m.texto).fala}`;
+        try {
+          await api("/falar", { method: "POST", json: { texto, agentes: [alvo.id] } });
+          enviadas.add(chave); b.firstChild.textContent = `${alvo.nome} · enviado ✓`;
+          carregarHistorico();
+        } catch (e) { b.disabled = false; $("estado").textContent = e.message; }
+      });
+      return b;
+    }));
 }
 
 async function enviar(texto) {
   texto = (texto || "").trim();
   if (!texto) return false;
-  if (ocupado()) { $("estado").textContent = "Espere eu terminar de responder para mandar a próxima."; return false; }
+  if (ocupado()) { $("estado").textContent = "Espere a mesa terminar de responder para mandar a próxima."; return false; }
   try {
-    conversa = await api("/mensagens", { method: "POST", json: { texto, agente_id: cfg.agente, conversa_id: conversa?.id ?? null } });
-    cfg.conversa = conversa.id; guardar(); render(); seguirSePensando(); carregarHistorico();
+    reuniao = await api("/falar", { method: "POST", json: reuniao ? { texto, reuniao: reuniao.reuniao } : { texto, agentes: cfg.mesa } });
+    cfg.reuniao = reuniao.reuniao; guardar(); render(); seguirSePensando(); carregarHistorico();
     return true;
   } catch (e) { $("estado").textContent = e.message; return false; }
 }
@@ -463,22 +614,24 @@ function seguirSePensando() {
   pararPoll();
   if (!ocupado()) return;
   poll = setTimeout(async () => {
-    try { const c = await api(`/conversas/${conversa.id}`); if (c.id === conversa?.id) { conversa = c; render(); } } catch {}
+    try { const r = await api(`/reunioes/${reuniao.reuniao}`); if (r.reuniao === reuniao?.reuniao) { reuniao = r; render(); } } catch {}
     seguirSePensando();
-  }, 3000);
+  }, 1500);
 }
-function novaConversa() { conversa = null; cfg.conversa = null; guardar(); pararPoll(); mudarEstado("ocioso"); render(); }
-async function abrirConversa(id) {
-  conversa = await api(`/conversas/${id}`);
-  cfg.conversa = conversa.id;
-  if (conversa.agente_id !== cfg.agente) { cfg.agente = conversa.agente_id; desenharEquipe(); desenharPalco(); }
+function novaConversa() { reuniao = null; cfg.reuniao = null; guardar(); pararPoll(); cfg.mesa.forEach(id => mudarEstado(id, "ocioso")); render(); }
+async function abrirReuniao(id, jaDita) {
+  reuniao = await api(`/reunioes/${id}`);
+  cfg.reuniao = reuniao.reuniao;
+  // Conversa antiga aparece inteira de uma vez; só o que chegar daqui para frente é "falado".
+  if (jaDita) reuniao.mensagens.forEach(m => { if (m.status === "pronta") mostrados[m.id] = Infinity; });
+  if (reuniao.agentes.join() !== cfg.mesa.join()) { cfg.mesa = reuniao.agentes; varias = cfg.mesa.length > 1; desenharEquipe(); desenharMesa(); }
   guardar(); render(); seguirSePensando();
 }
 async function carregarHistorico() {
   try {
-    const lista = await api("/conversas");
-    $("lista-conversas").replaceChildren(...lista.map(c => el("li", {}, el("button", { type: "button", onclick: () => { $("historico").open = false; abrirConversa(c.id); window.scrollTo({ top: 0 }); } },
-      el("span", { text: c.titulo || "Sem título" }), el("small", { text: `${c.agente} · ${new Date(c.quando).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}` })))));
+    const lista = await api("/reunioes");
+    $("lista-conversas").replaceChildren(...lista.map(c => el("li", {}, el("button", { type: "button", onclick: () => { $("historico").open = false; abrirReuniao(c.reuniao, true); window.scrollTo({ top: 0 }); } },
+      el("span", { text: c.titulo || "Sem título" }), el("small", { text: `${c.agentes.join(" + ")} · ${new Date(c.quando).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}` })))));
   } catch {}
 }
 $("nova").addEventListener("click", novaConversa);
@@ -489,10 +642,11 @@ let gravando = false, rec = null, desligando = false, finalTxt = "", gravador = 
 
 function marcarGravando(sim) {
   gravando = sim;
-  mudarEstado(sim ? "ouvindo" : (ocupado() ? "pensando" : "ocioso"));
-  $("boneco").setAttribute("aria-label", sim ? "Parar e enviar" : "Tocar para falar");
-  $("estado").innerHTML = sim ? "<b>●</b> Ouvindo… toque em mim de novo para enviar" : "Toque em mim para falar";
+  if (sim) cfg.mesa.forEach(id => mudarEstado(id, "ouvindo")); else atualizarEstados();
+  document.querySelectorAll(".boneco").forEach(b => b.setAttribute("aria-label", sim ? "Parar e enviar" : "Tocar para falar"));
+  if (sim) $("estado").innerHTML = "<b>●</b> Ouvindo… toque de novo para enviar";
 }
+function pensandoTodos() { cfg.mesa.forEach(id => mudarEstado(id, "pensando")); }
 // O que você está falando aparece logo embaixo do bonequinho, para saber que ele está ouvindo.
 function mostrarFala(final, parcial = "", aviso = "") {
   const f = $("fala");
@@ -502,12 +656,12 @@ function mostrarFala(final, parcial = "", aviso = "") {
   f.replaceChildren(el("b", { text: final }), parcial ? el("i", { text: (final ? " " : "") + parcial }) : "");
 }
 
-$("boneco").addEventListener("click", () => {
+function tocarBoneco() {
   const ditado = Reconhecimento && cfg.modo !== "gravador";
   if (gravando) return gravador && gravador.state === "recording" ? pararGravador() : pararDitado();
-  if (ocupado()) { cutucar(0.6); $("estado").textContent = "Ainda estou pensando na anterior. Já te respondo."; return; }
+  if (ocupado()) { cutucar(0.6); $("estado").textContent = "Ainda estamos respondendo a anterior. Já já."; return; }
   return ditado ? comecarDitado() : comecarGravador();
-});
+}
 
 async function aoTerminarDeFalar(texto) {
   texto = texto.trim();
@@ -589,7 +743,7 @@ async function comecarGravador() {
       stream.getTracks().forEach(t => t.stop());
       if (medidor) { clearInterval(medidor); try { medidor.ctx.close(); } catch {} medidor = null; }
       marcarGravando(false);
-      mudarEstado("pensando");
+      pensandoTodos();
       $("estado").textContent = "Entendendo o que você disse…";
       try {
         const fd = new FormData();
@@ -597,7 +751,7 @@ async function comecarGravador() {
         const { texto } = await api("/transcrever", { method: "POST", body: fd });
         mostrarFala(texto);
         await aoTerminarDeFalar(texto);
-      } catch (e) { mudarEstado("ocioso"); $("estado").textContent = e.message; }
+      } catch (e) { atualizarEstados(); $("estado").textContent = e.message; }
     };
     gravador.start();
     marcarGravando(true);
