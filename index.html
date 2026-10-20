@@ -172,7 +172,7 @@ const FECHAR = "Fecha o plano agora, no formato do seu documento-base: oferta, m
 // Cada agente tem cor e um detalhe próprio. Agente novo sem entrada aqui ganha cor e detalhe pelo nome.
 const ROSTOS = {
   "Sócio de Negócios":        { cor: 210, item: "oculos" },
-  "Advisor":                  { cor: 42,  item: "gravata" },
+  "Advisor":                  { cor: 215, item: "advisor", sat: 0.18 },
   "Estrategista de Conteúdo": { cor: 260, item: "estrela" },
   "Pesquisadora":             { cor: 175, item: "antena" },
   "Copywriter":               { cor: 25,  item: "topete" },
@@ -193,27 +193,36 @@ function rostoDe(nome) {
 function itemSvg(item, cor) {
   const escuro = `hsl(${cor} 35% 30%)`, vivo = `hsl(${cor} 70% 55%)`;
   return {
-    oculos: `<g fill="none" stroke="${escuro}" stroke-width="4"><circle cx="78" cy="96" r="17"/><circle cx="122" cy="96" r="17"/><path d="M95 95q5-4 10 0"/></g>`,
     estrela: `<path d="M100 18l7 15 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2z" fill="${vivo}"/>`,
     antena: `<path d="M100 40V18" stroke="${escuro}" stroke-width="4" stroke-linecap="round"/><circle cx="100" cy="15" r="8" fill="${vivo}"/>`,
     topete: `<path d="M84 42q6-26 22-22-12 6-6 22M98 40q10-22 26-14-14 2-14 16" fill="${vivo}"/>`,
     boina: `<path d="M52 56q48-38 96 0q-48 10-96 0z" fill="${escuro}"/><circle cx="100" cy="30" r="5" fill="${escuro}"/>`,
     gota: `<path d="M100 14q16 20 0 34q-16-14 0-34z" fill="${vivo}"/>`,
     fones: `<g fill="none" stroke="${escuro}" stroke-width="6" stroke-linecap="round"><path d="M42 100q0-66 58-66t58 66"/></g><rect x="30" y="92" width="18" height="30" rx="8" fill="${escuro}"/><rect x="152" y="92" width="18" height="30" rx="8" fill="${escuro}"/>`,
-    monoculo: `<circle cx="122" cy="96" r="17" fill="none" stroke="${escuro}" stroke-width="4"/><path d="M138 102q8 18 2 34" fill="none" stroke="${escuro}" stroke-width="2"/>`,
     coracao: `<path d="M100 40V24" stroke="${escuro}" stroke-width="4" stroke-linecap="round"/><path d="M100 24c-4-8-16-6-14 3 1 6 14 12 14 12s13-6 14-12c2-9-10-11-14-3z" fill="${vivo}"/>`,
-    gravata: `<path d="M64 46q36-26 72 0q-10-16-36-16t-36 16z" fill="hsl(${cor} 6% 72%)"/><path d="M92 146l8 6 8-6-4 26-4 6-4-6z" fill="${escuro}"/><path d="M92 146l8-6 8 6-8 6z" fill="${vivo}"/>`,
+    advisor: `<path d="M40 82q-6-50 56-52 54-2 64 46-12-26-50-30-44-2-70 36z" fill="hsl(210 8% 80%)"/><path d="M58 58q32-24 70-12" fill="none" stroke="hsl(210 8% 93%)" stroke-width="4" stroke-linecap="round"/><path d="M78 150v20l22-10zM122 150v20l-22-10z" fill="hsl(225 55% 28%)"/><circle cx="100" cy="160" r="5" fill="hsl(42 80% 55%)"/>`,
     broto: `<path d="M100 40V24" stroke="hsl(120 35% 35%)" stroke-width="4" stroke-linecap="round"/><path d="M100 26q-16-14-24-2 14 6 24 2zM100 26q14-16 24-4-12 8-24 4z" fill="hsl(120 45% 50%)"/>`,
+  }[item] || "";
+}
+
+// Itens presos ao rosto: andam junto com os olhos quando o bonequinho olha para o cursor.
+function itemRostoSvg(item, cor) {
+  const escuro = `hsl(${cor} 35% 30%)`;
+  return {
+    oculos: `<g fill="none" stroke="${escuro}" stroke-width="4"><circle cx="78" cy="96" r="17"/><circle cx="122" cy="96" r="17"/><path d="M95 95q5-4 10 0"/></g>`,
+    monoculo: `<circle cx="122" cy="96" r="17" fill="none" stroke="${escuro}" stroke-width="4"/><path d="M138 102q8 18 2 34" fill="none" stroke="${escuro}" stroke-width="2"/>`,
+    advisor: `<path d="M64 76q14-8 28 0M108 76q14-8 28 0" fill="none" stroke="hsl(210 10% 45%)" stroke-width="4" stroke-linecap="round"/><path d="M100 116c-6-6-20-6-24 2 8-2 14 2 24 2s16-4 24-2c-4-8-18-8-24-2z" fill="hsl(210 10% 50%)"/>`,
   }[item] || "";
 }
 
 // Desenha o bonequinho (corpo de bala de goma, olhos, bochechas, boca e o detalhe do agente).
 function bonecoSvg(nome, id) {
-  const { cor, item } = rostoDe(nome);
+  const { cor, item, sat = 1 } = rostoDe(nome);
+  const S = (v) => Math.round(v * sat);
   return `<svg viewBox="0 0 200 200" aria-hidden="true">
     <defs>
       <radialGradient id="g${id}" cx="38%" cy="30%" r="80%">
-        <stop offset="0" stop-color="hsl(${cor} 80% 96%)"/><stop offset=".55" stop-color="hsl(${cor} 60% 84%)"/><stop offset="1" stop-color="hsl(${cor} 45% 70%)"/>
+        <stop offset="0" stop-color="hsl(${cor} ${S(80)}% 96%)"/><stop offset=".55" stop-color="hsl(${cor} ${S(60)}% 84%)"/><stop offset="1" stop-color="hsl(${cor} ${S(45)}% 70%)"/>
       </radialGradient>
     </defs>
     <ellipse class="sombra" cx="100" cy="182" rx="52" ry="8" fill="hsl(${cor} 25% 60% / .22)"/>
@@ -228,6 +237,7 @@ function bonecoSvg(nome, id) {
         <ellipse cx="64" cy="118" rx="9" ry="5" fill="hsl(${(cor + 340) % 360} 80% 75% / .55)"/>
         <ellipse cx="136" cy="118" rx="9" ry="5" fill="hsl(${(cor + 340) % 360} 80% 75% / .55)"/>
         <path class="boca" d="M88 124q12 10 24 0" fill="none" stroke="hsl(${cor} 40% 22%)" stroke-width="4" stroke-linecap="round"/>
+        ${itemRostoSvg(item, cor)}
       </g>
       ${itemSvg(item, cor)}
     </g>
@@ -250,7 +260,7 @@ function mirar(cx, cy) {
   if (!b || b.offsetParent === null) return;
   const r = b.getBoundingClientRect();
   const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height * 0.45);
-  const d = Math.hypot(dx, dy) || 1, alcance = Math.min(1, d / (r.width * 0.9));
+  const d = Math.hypot(dx, dy) || 1, alcance = Math.min(1, d / (r.width * 0.5));
   olhar.ax = (dx / d) * alcance; olhar.ay = (dy / d) * alcance;
 }
 window.addEventListener("pointermove", (e) => mirar(e.clientX, e.clientY), { passive: true });
@@ -270,19 +280,19 @@ function quadro(agora) {
     const sy = 1 + resp + e * 0.08 - anima.pulo * 0.05;
     const sx = 1 - resp * 0.6 + e * 0.05 + anima.pulo * 0.04;
     const dy = -Math.abs(Math.sin(t * 9)) * e * 10 - anima.pulo * 14 * Math.abs(Math.sin(t * 7));
-    olhar.x += (olhar.ax - olhar.x) * 0.12; olhar.y += (olhar.ay - olhar.y) * 0.12;
+    olhar.x += (olhar.ax - olhar.x) * 0.18; olhar.y += (olhar.ay - olhar.y) * 0.18;
     const segue = anima.estado === "pensando" ? 0 : 1;
-    const incl = (anima.estado === "pensando" ? Math.sin(t * 1.6) * 4 : Math.sin(t * 1.1) * 1.2 + e * Math.sin(t * 13) * 3) + olhar.x * 6 * segue;
-    svg.querySelector(".corpo").setAttribute("transform", `translate(100 176) rotate(${incl}) scale(${sx} ${sy}) translate(-100 -176) translate(${olhar.x * 6 * segue} ${dy + olhar.y * 3 * segue})`);
-    svg.querySelector(".rosto-g").setAttribute("transform", `translate(${olhar.x * 8 * segue} ${olhar.y * 6 * segue})`);
+    const incl = (anima.estado === "pensando" ? Math.sin(t * 1.6) * 4 : Math.sin(t * 1.1) * 1.2 + e * Math.sin(t * 13) * 3) + olhar.x * 14 * segue;
+    svg.querySelector(".corpo").setAttribute("transform", `translate(100 176) rotate(${incl}) scale(${sx} ${sy}) translate(-100 -176) translate(${olhar.x * 16 * segue} ${dy + olhar.y * 8 * segue})`);
+    svg.querySelector(".rosto-g").setAttribute("transform", `translate(${olhar.x * 16 * segue} ${olhar.y * 13 * segue})`);
     svg.querySelector(".sombra").setAttribute("transform", `translate(100 182) scale(${1 - Math.min(0.3, -dy / 60)} 1) translate(-100 -182)`);
 
     // olhos: piscar, e olhar em volta quando está pensando
     if (agora > anima.proximaPiscada) { anima.piscar = 1; anima.proximaPiscada = agora + 2500 + Math.random() * 3000; }
     anima.piscar *= 0.75;
     const fecha = anima.piscar > 0.2 ? 0.1 : 1;
-    const ox = anima.estado === "pensando" ? Math.sin(t * 1.3) * 7 : olhar.x * 6;
-    const oy = anima.estado === "pensando" ? -4 : olhar.y * 5;
+    const ox = anima.estado === "pensando" ? Math.sin(t * 1.3) * 7 : olhar.x * 7;
+    const oy = anima.estado === "pensando" ? -4 : olhar.y * 6;
     svg.querySelectorAll(".olho").forEach(o => o.style.transform = `translate(${ox}px, ${oy}px) scaleY(${fecha * (anima.estado === "respondeu" && anima.pulo > 0.3 ? 0.55 : 1)})`);
 
     // boca: abre com a voz, reta pensando, sorriso no resto
