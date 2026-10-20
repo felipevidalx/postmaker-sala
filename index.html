@@ -385,7 +385,9 @@ async function api(caminho, opcoes = {}, tentouDeNovo = false) {
     });
   } catch {
     // O túnel muda de endereço quando o PC reinicia: busca o novo e tenta mais uma vez.
-    if (!tentouDeNovo) { cfg.base = ""; return api(caminho, opcoes, true); }
+    // Só repete o que é seguro repetir (leitura); um envio de áudio ou de fala repetido viraria duplicado.
+    if (!tentouDeNovo && !opcoes.method) { cfg.base = ""; return api(caminho, opcoes, true); }
+    if (!tentouDeNovo) cfg.base = "";
     throw new Error("Não consegui falar com o Postmaker. Confira se o PC está ligado e com internet.");
   }
   const dados = await r.json().catch(() => ({}));
@@ -748,7 +750,17 @@ async function comecarGravador() {
       try {
         const fd = new FormData();
         fd.append("audio", new Blob(pedacos, { type: gravador.mimeType }), "fala");
-        const { texto } = await api("/transcrever", { method: "POST", body: fd });
+        const { id } = await api("/transcrever", { method: "POST", body: fd });
+        // O PC transcreve na fila de trás: pergunta de tempos em tempos até ficar pronto (até uns 4 minutos).
+        let texto = null;
+        for (let i = 0; i < 160 && texto === null; i++) {
+          await new Promise(r => setTimeout(r, 1500));
+          const t = await api(`/transcricoes/${id}`);
+          if (t.status === "falhou") throw new Error(t.erro || "Não consegui transcrever o áudio.");
+          if (t.status === "pronta") texto = t.texto || "";
+          else if (i === 8) $("estado").textContent = "Ainda entendendo… o PC está ocupado com os agentes.";
+        }
+        if (texto === null) throw new Error("A transcrição demorou demais. Tente falar de novo, mais curto.");
         mostrarFala(texto);
         await aoTerminarDeFalar(texto);
       } catch (e) { atualizarEstados(); $("estado").textContent = e.message; }
